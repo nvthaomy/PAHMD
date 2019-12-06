@@ -1,0 +1,109 @@
+#make general atom types
+ca=createatom CA CT 0
+cc=createatom CC CT 0
+cb=createatom CB CT 0 
+ha1=createatom HA1 HC 0
+ha2=createatom HA2 HC 0
+hc1=createatom HC1 HC 0
+hc2=createatom HC2 HC 0
+hc3=createatom HC3 HC 0
+hn1=createatom HN1 H 0
+hn2=createatom HN2 H 0
+hn3=createatom HN3 H 0
+#need to change the  atom types below accordingly, now setting for neutral monomers
+hb1=createatom HB1 H1 0
+hb2=createatom HB2 H1 0
+n=createatom N NT 0
+
+
+set ca element C
+set cc element C
+set cb element C
+set ha1 element H
+set ha2 element H
+set hb1 element H
+set hb2 element H
+set hc1 element H
+set hc2 element H
+set hc3 element H
+set n element N
+set hn1 element H
+set hn2 element H
+set hn3 element H
+
+r1 = createresidue NHD #deprot head
+
+add r1 ca
+add r1 cb
+add r1 cc
+add r1 n
+add r1 ha1
+add r1 ha2
+add r1 hb1
+add r1 hb2
+add r1 hc1
+add r1 hc2
+add r1 hn1
+add r1 hn2
+bond ca ha1
+bond ca ha2
+bond ca cb
+bond ca cc
+bond cb n
+bond cb hb1 
+bond cb hb2
+bond n hn1
+bond n hn2
+bond cc hc1
+bond cc hc2
+
+r2 =  copy r1
+r3 =  copy r1
+
+NHD = createunit NHD
+add NHD r1
+set NHD.1 connect1 NHD.1.3
+set NHD.1 restype undefined
+set NHD tail NHD.1.3
+
+set r2 name ND
+remove r2 r2.6 #removing HA2 atom from this residue
+ND = createunit ND
+add ND r2
+set ND.1 connect1 ND.1.3
+set ND.1 connect0 ND.1.1
+set ND.1 restype undefined
+set ND tail ND.1.3
+set ND head ND.1.1
+
+set r3 name NTD
+remove r3 r3.6 #removing HA2 atom from this residue
+add r3 hc3
+bond r3.3 r3.13
+NTD = createunit NTD
+add NTD r3
+set NTD.1 connect1 null
+set NTD.1 connect0 NTD.1.1
+set NTD.1 restype undefined
+set NTD head NTD.1.1
+
+#load head and tail pdb
+r1 = loadpdb PAH_deprot_head.pdb
+r2 = loadpdb PAH_deprot_tail.pdb
+#check if head tail atoms are correct, if not need to add accordingly
+set r2 head r2.1.1
+set r2.1 connect1 null
+set r1 name 'NHD'
+set r2 name 'NTD'
+
+#save lib
+NHD = copy r1
+NTD = copy r2
+saveoff {NHD ND NTD} PAH_deprot.lib
+
+#check the library
+source leaprc.ff99  #or compatible ff with the atom types in .lib
+check ND
+check NHD
+check NTD
+quit

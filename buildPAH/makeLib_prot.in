@@ -1,0 +1,116 @@
+#make general atom types
+ca=createatom CA CT 0
+cc=createatom CC CT 0
+cb=createatom CB CT 0 
+ha1=createatom HA1 HC 0
+ha2=createatom HA2 HC 0
+hc1=createatom HC1 HC 0
+hc2=createatom HC2 HC 0
+hc3=createatom HC3 HC 0
+hn1=createatom HN1 H 0
+hn2=createatom HN2 H 0
+hn3=createatom HN3 H 0
+hb1=createatom HB1 HP 0
+hb2=createatom HB2 HP 0
+n=createatom N N3 0
+set ca element C
+set cc element C
+set cb element C
+set ha1 element H
+set ha2 element H
+set hb1 element H
+set hb2 element H
+set hc1 element H
+set hc2 element H
+set hc3 element H
+set n element N
+set hn1 element H
+set hn2 element H
+set hn3 element H
+
+r4 = createresidue NHP #prot head
+add r4 ca
+add r4 cb
+add r4 cc
+add r4 n
+add r4 ha1
+add r4 ha2
+add r4 hb1
+add r4 hb2
+add r4 hc1
+add r4 hc2
+add r4 hn1
+add r4 hn2
+add r4 hn3
+bond ca ha1
+bond ca ha2
+bond ca cb
+bond ca cc
+bond cb n
+bond cb hb1 
+bond cb hb2
+bond n hn1
+bond n hn2
+bond n hn3
+bond cc hc1
+bond cc hc2
+r5 = copy r4
+r6 = copy r4
+NHP = createunit NHP
+add NHP r4
+set NHP.1 connect1 NHP.1.3
+set NHP.1 restype undefined
+set NHP tail NHP.1.3
+
+set r5 name NP
+remove r5 r5.6 #removing HA2 atom from this residue
+NP = createunit NP
+add NP r5
+set NP.1 connect1 NP.1.3
+set NP.1 connect0 NP.1.1
+set NP.1 restype undefined
+set NP tail NP.1.3
+set NP head NP.1.1
+
+set r6 name NTP
+remove r6 r6.6 #removing HA2 atom from this residue
+add r6 hc3
+bond r6.3 r6.14
+NTP = createunit NTP
+add NTP r6
+set NTP.1 connect1 null 
+set NTP.1 connect0 NTP.1.1
+set NTP.1 restype undefined
+set NTP head NTP.1.1
+
+#due to some error with name of NHP residue, need to rename 
+#set NHP name 'NHP'
+#set NHP.1 name 'NHP'
+#set NP name 'NP'
+#set NP.1 name 'NP'
+#set NTP name 'NTP'
+#set NTP.1 name 'NTP'
+
+saveoff {NHP NP NTP} PAH_prot.lib
+
+#load head and tail pdb
+r1=loadpdb PAH_prot_head.pdb
+r2=loadpdb PAH_prot_tail.pdb
+#check if head tail atoms are correct, if not need to add accordingly
+set r2 head r2.1.1
+set r2.1 connect1 null
+#set r1 name NHP
+#set r2 name NTP
+
+#save lib
+NHP = copy r1
+NTP = copy r2
+saveoff {NHP NP NTP} PAH_prot.lib
+
+
+#check the library
+source leaprc.ff99  #or compatible ff with the atom types in .lib
+check NP
+check NHP
+check NTP
+quit
