@@ -41,6 +41,15 @@ if __name__ == "__main__":
                         help="force field")
     parser.add_argument("-l", nargs='+',
                         help="can have multiple libraries, tleap library for PAH monomers: PAH, PAH_avg,PAH1,etc.")
+    parser.add_argument("-xyz",nargs ="+",type = float,
+                        help="periodic box size in nm")
+    parser.add_argument("-a", action = "store_true",
+                        help="if use anisotropic MC barostat, acts on the z direction")
+    parser.add_argument("-ns", nargs='+', type=float, default = [0],
+                        help="list of number of salt molecules (cation and anion pair)")
+    parser.add_argument("-s", nargs=2, type=str, default = ['Na+', 'Cl-'],
+                        help="list of cation and anion")
+
     args = parser.parse_args() 
     
     ff = args.ff
@@ -53,13 +62,31 @@ if __name__ == "__main__":
     Pm = args.Pm
     T = args.temperature
     PAHLib = args.l
+    ns = args.ns
+    s = args.s
     singleChainPdb = []
     pattern = 'random' #random deprotonation
+    if args.a:
+        anisoP = True
+    else:
+        anisoP = False
+
     if args.evendist:
         pattern = 'even'
     if not len(np) == len(nw):
         sys.stderr.write('\n np and nw do not have the same number of arguments!')
     #weight fraction from MW of neutral monomers
+
+    #estimate box size from water density if not provided:
+    if not args.xyz:
+        ntot = nw[0] + N*np[0]
+        vol = float(ntot)/33.36
+        x = vol**(1./3.)
+        y = x
+        z = x
+    else:
+        x,y,z = (args.xyz[0],args.xyz[1],args.xyz[2])
+
      
     w = ((N*57*np)/(N*57*np+18*nw)) #calculate weight fraction
     w = [round(i,2) for i in w]
@@ -92,7 +119,7 @@ if __name__ == "__main__":
             newCharge.append(charge_frac)
         f = newCharge
     if ff in ['gaff2','ff99']:
-        writeOpenMMinput_amber.main(f,N,np,nw,watermodel,singleChainPdb,T,PAHLib,ff)
+        writeOpenMMinput_amber.main(f,N,np,nw,watermodel,singleChainPdb,T,PAHLib,ff, x,y,z, anisoP, ns, s)
     elif ff == 'cgen':
         writeOpenMMinput_cgen.main(f,N,np,nw,w,watermodel,singleChainPdb,T)
         

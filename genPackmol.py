@@ -10,6 +10,8 @@ import numpy
 def packmol_noSolvent(f,N,np,pdbList):
     mixturePdb = []
     inpFile = []
+    #convert to angstrom
+    x,y,z = ((x-.2)*10,(y-.2)*10,(z-.2)*10)
     np = [int(i) for i in np]
     for i,charge in enumerate(f):
         for k,num_poly in enumerate(np):    
@@ -39,33 +41,47 @@ def packmol_noSolvent(f,N,np,pdbList):
         for inp in inpFile:
             job.write('\npackmol < {}'.format(inp))      
     return mixturePdb
-def packmol(f,N,np,nw,watermodel,pdbList):
+def packmol(f,N,np,nw,watermodel,pdbList,x,y,z,ns,s, saltPdbDicts = {'Na+':'na.pdb', 'Cl-':'cl.pdb'}):
     #Calculating weight fraction from nw and np    
     w = ((N*57*np)/(N*57*np+18*nw))
     w = [round(i,2) for i in w]
     inpFile=[]
     mixturePdb = []
+    x,y,z = ((x-.2)*10,(y-.2)*10,(z-.2)*10) 
     for i,charge in enumerate(f):
         for k,wtfrac in enumerate(w):    
-            inp = open('mixAH{}_f{}_{}_w{}.inp'.format(N,charge,watermodel,wtfrac),'w')
+            if ns[k] > 0.:
+                inpName = 'mixAH{}_f{}_{}_w{}_{}{}{}.inp'.format(N,charge,watermodel,wtfrac,int(ns[k]),s[0],s[1])
+                pdbName = 'AH{}_f{}_{}_w{}_{}{}{}.pdb'.format(N,charge,watermodel,wtfrac,int(ns[k]),s[0],s[1])
+            else:
+                inpName = 'mixAH{}_f{}_{}_w{}.inp'.format(N,charge,watermodel,wtfrac)
+                pdbName = 'AH{}_f{}_{}_w{}.pdb'.format(N,charge,watermodel,wtfrac)
+            mixturePdb.append(pdbName)
+            inp = open(inpName,'w')
             inp.write('tolerance 2.0')
             inp.write('\nfiletype pdb')
-            inp.write('\noutput AH{}_f{}_{}_w{}.pdb'.format(N,charge,watermodel,wtfrac))
-            mixturePdb.append('AH{}_f{}_{}_w{}.pdb'.format(N,charge,watermodel,wtfrac))
+            inp.write('\noutput {}'.format(pdbName))
             inp.write('\nadd_amber_ter')
             inp.write('\n')
             inp.write('\nstructure {}'.format(pdbList[i]))
             inp.write('\n\tnumber {}'.format(int(np[k])))
             inp.write('\n\tresnumbers 2')
-            inp.write('\n\tinside box 5 5 5 145 145 145')
+            inp.write('\n\tinside box 3 3 3 {} {} {}'.format(x,y,z))
             inp.write('\nend structure')
             inp.write('\n')
             inp.write('\nstructure {}.pdb'.format(watermodel))
             inp.write('\n\tnumber {}'.format(int(nw[k])))
             inp.write('\n\tresnumbers 2')
-            inp.write('\n\tinside box 0 0 0 150 150 150')
+            inp.write('\n\tinside box 2 2 2 {} {} {}'.format(x+1,y+1,z+1))
             inp.write('\nend structure')
-            inpFile.append('mixAH{}_f{}_{}_w{}.inp'.format(N,charge,watermodel,wtfrac))
+            if ns[k] > 0.:
+                lines = ""
+                for ion in s:
+                    lines += "\nstructure {ionPdb}".format(ionPdb = saltPdbDicts[ion])
+                    lines += "\n\tnumber {n_ion}".format(n_ion = int(ns[k]))
+                    lines += "\n\tresnumbers 2\n\tinside box 3 3 3 {x} {y} {z}\nend structure\n".format( x=x, y=y, z=z)
+                inp.write(lines)
+            inpFile.append(inpName)
     #writing job file to pack molecules
     with open('packmol.job','w') as job:
         job.write('#!/bin/bash')
